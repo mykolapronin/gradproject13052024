@@ -44,6 +44,7 @@ class StorageSQLite(BaseStorageTour, ABC):
                 )
             """
             cursor.execute(query)
+            connection.commit()
 
     def __init__(self, database_name: str):
         self.database_name = database_name
@@ -59,6 +60,8 @@ class StorageSQLite(BaseStorageTour, ABC):
                 VALUES (?, ?, ?, ?)
             """
             cursor.execute(query, values)
+            connection.commit()
+
         return self._get_latest_tour()
 
     def _get_latest_tour(self) -> SavedTour:
@@ -71,6 +74,7 @@ class StorageSQLite(BaseStorageTour, ABC):
                 LIMIT 1
             """
             result: tuple = cursor.execute(query).fetchone()
+            connection.commit()
             id, title, description, price, cover, created_at = result
             saved_product = SavedTour(
                 id=id, title=title, description=description, price=price, cover=cover, created_at=created_at
@@ -78,7 +82,7 @@ class StorageSQLite(BaseStorageTour, ABC):
 
             return saved_product
 
-    def get_product(self, _id: int) -> SavedTour:
+    def get_tour(self, _id: int) -> SavedTour:
         with sqlite3.connect(self.database_name) as connection:
             cursor = connection.cursor()
             query = f"""
@@ -87,6 +91,8 @@ class StorageSQLite(BaseStorageTour, ABC):
                 WHERE id = {_id}
             """
             result: tuple = cursor.execute(query).fetchone()
+            connection.commit()
+
             if not result:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail=f'Check your entity id, product with {_id=} not found'
@@ -99,7 +105,7 @@ class StorageSQLite(BaseStorageTour, ABC):
 
             return saved_product
 
-    def get_products(self, limit: int = 10, q: str = '') -> list[SavedTour]:
+    def get_tours(self, limit: int = 10, q: str = '') -> list[SavedTour]:
         with sqlite3.connect(self.database_name) as connection:
             cursor = connection.cursor()
             query = f"""
@@ -110,6 +116,7 @@ class StorageSQLite(BaseStorageTour, ABC):
                 LIMIT {limit}
             """
             data: list[tuple] = cursor.execute(query).fetchall()
+            connection.commit()
 
         list_of_products = []
         for result in data:
@@ -120,8 +127,8 @@ class StorageSQLite(BaseStorageTour, ABC):
             list_of_products.append(saved_product)
         return list_of_products
 
-    def update_product_price(self, _id: int, new_price: float) -> SavedTour:
-        self.get_product(_id)
+    def update_tour_price(self, _id: int, new_price: float) -> SavedTour:
+        self.get_tour(_id)
 
         with sqlite3.connect(self.database_name) as connection:
             cursor = connection.cursor()
@@ -132,12 +139,13 @@ class StorageSQLite(BaseStorageTour, ABC):
                         WHERE id = :Id
             """
             cursor.execute(query, {'Price': new_price, 'Id': _id})
+            connection.commit()
 
-        saved_product = self.get_product(_id)
+        saved_product = self.get_tour(_id)
         return saved_product
 
     def delete_tour(self, _id: int):
-        self.get_product(_id)
+        self.get_tour(_id)
         with sqlite3.connect(self.database_name) as connection:
             cursor = connection.cursor()
             query = f"""
@@ -145,6 +153,7 @@ class StorageSQLite(BaseStorageTour, ABC):
                         WHERE id = :Id
             """
             cursor.execute(query, {'Id': _id})
+            connection.commit()
 
 
 storage = StorageSQLite('db_project.sqlite')

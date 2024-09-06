@@ -6,12 +6,10 @@ from fastapi.staticfiles import StaticFiles
 from schemas import NewTour, SavedTour, TourPrice, DeletedTour
 from storage import storage
 
-
 app = FastAPI(
     debug=True,
     title='KolyanProject',
 )
-
 
 templates = Jinja2Templates(directory='templates')
 app.mount('/static', StaticFiles(directory='static'), name='static')
@@ -51,17 +49,16 @@ def navigation(request: Request):
 
 # CRUD
 
-# CREATE
+
 @app.post('/api/product/', description='create product', status_code=status.HTTP_201_CREATED, tags=['API', 'Product'])
 def add_product(new_product: NewTour) -> SavedTour:
     saved_product = storage.create_tour(new_product)
     return saved_product
 
 
-# READ
 @app.get('/api/product/', tags=['API', 'Product'])
 def get_products(
-        limit: int = Query(default=10, description='no more than products', gt=0), q: str = '',
+        limit: int = Query(default=5, description='no more than products', gt=0), q: str = '',
 ) -> list[SavedTour]:
     result = storage.get_tour(limit=limit, q=q)
     return result
