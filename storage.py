@@ -144,6 +144,26 @@ class StorageSQLite(BaseStorageTour, ABC):
         saved_product = self.get_tour(_id)
         return saved_product
 
+    def get_tour_by_title_or_other_str(self, query_str: str):
+
+        with sqlite3.connect(self.database_name) as connection:
+            cursor = connection.cursor()
+            query = f"""
+                SELECT * 
+                FROM tours
+                WHERE 
+                    title LIKE '%{query_str}%'
+                OR 
+                    author LIKE '%{query_str}%'
+                OR
+                    description LIKE '%{query_str}%'
+
+                ORDER BY id DESC
+            """
+            result = cursor.execute(query)
+            connection.commit()
+            return result.fetchall()
+
     def delete_tour(self, _id: int):
         self.get_tour(_id)
         with sqlite3.connect(self.database_name) as connection:
@@ -157,3 +177,5 @@ class StorageSQLite(BaseStorageTour, ABC):
 
 
 storage = StorageSQLite('db_project.sqlite')
+
+# chat gpt gave me advice about connection commit

@@ -15,25 +15,41 @@ templates = Jinja2Templates(directory='templates')
 app.mount('/static', StaticFiles(directory='static'), name='static')
 
 
+def _serialize_tours(tours: list[tuple]) -> list[SavedTour]:
+    for tour in tours:
+        print(tour)
+    tours_serialized = [
+        SavedTour(
+            id=tour[0],
+            title=tour[1],
+            description=tour[2],
+            cover=tour[3],
+            created_at=tour[4],
+        )
+        for tour in tours
+    ]
+    return tours_serialized
+
+
 @app.get('/', include_in_schema=False)
 @app.post('/', include_in_schema=False)
 def index(request: Request, q: str = Form(default='')):
-    products = storage.get_tours(limit=40, q=q)
+    tours = storage.get_tours(limit=40, q=q)
     context = {
         'request': request,
         'page_title': 'All tours',
-        'products': products
+        'products': tours
     }
     return templates.TemplateResponse('index.html', context=context)
 
 
 @app.get('/{product_id}', include_in_schema=False)
 def product_detail(request: Request, product_id: int):
-    product = storage.get_tours(product_id)
+    tour = storage.get_tours(product_id)
     context = {
         'request': request,
-        'page_title': f'Product {product.title}',
-        'product': product
+        'page_title': f'Product {tour.title}',
+        'product': tour
     }
     return templates.TemplateResponse('details.html', context=context)
 
@@ -51,8 +67,8 @@ def navigation(request: Request):
 
 
 @app.post('/api/product/', description='create product', status_code=status.HTTP_201_CREATED, tags=['API', 'Product'])
-def add_product(new_product: NewTour) -> SavedTour:
-    saved_product = storage.create_tour(new_product)
+def add_product(new_tour: NewTour) -> SavedTour:
+    saved_product = storage.create_tour(new_tour)
     return saved_product
 
 
@@ -78,8 +94,25 @@ def update_product_price(new_price: TourPrice,
     return result
 
 
-# DELETE
 @app.delete('/api/product/{product_id}', tags=['API', 'Product'])
 def update_tour_price(product_id: int = Path(ge=1, description='product id')) -> DeletedTour:
     storage.delete_tour(product_id)
     return DeletedTour(id=product_id)
+
+
+@app.get('/all-tours', tags=['API', 'Product'])
+@app.post('/search', tags=['API', 'Product'])
+def all_tours(request: Request, search_text: str = Form(None)):
+    if search_text:
+        tours = storage.get_tour_by_title_or_other_str(query_str=search_text)
+    else:
+        tours = storage.get_tours(limit=15)
+    tours_serialized = _serialize_tours(tours)
+    context = {
+        'title': f'Search result for text {search_text}' if search_text else 'our tours',
+        'request': request,
+        'tours': tours_serialized,
+
+    }
+
+    return templates.TemplateResponse('navbar.html', context=context)
